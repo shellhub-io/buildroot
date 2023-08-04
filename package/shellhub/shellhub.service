@@ -1,0 +1,13 @@
+[Unit]
+Description=ShellHub Agent
+Wants=network.target
+After=local-fs.target network.target time-sync.target
+Requires=local-fs.target
+
+[Service]
+EnvironmentFile=/etc/default/shellhub-agent
+ExecStart=/usr/bin/shellhub
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
