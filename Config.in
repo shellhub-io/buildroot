@@ -1,0 +1,3 @@
+menu "external packages"
+source "$BR2_EXTERNAL_SHELLHUB_PATH/package/shellhub/Config.in"
+endmenu
