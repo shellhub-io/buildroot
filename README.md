@@ -2,7 +2,23 @@
 
 This repository contains a Buildroot external tree for ShellHub.
 
-# Usage
+## Configuration
+
+To configure the ShellHub agent on your Buildroot system,
+you can use an overlay to add a custom configuration file
+with the required environment variables.
+
+Run the following command:
+
+```
+$ cat > rootfs_overlay/etc/default/shellhub-agent <<-EOF
+SERVER_ADDRESS="https://your.shellhub.server.com"
+PRIVATE_KEY="path_to_private_key_file"
+TENANT_ID="your_tenant_id_here"
+EOF
+```
+
+## Usage
 
 Clone Buildroot:
 
