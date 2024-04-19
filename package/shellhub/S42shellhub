@@ -16,19 +16,14 @@ LOGFILE=/var/log/$NAME.log
 
 do_start()
 {
-        start-stop-daemon --start --quiet --pidfile $PIDFILE --make-pidfile \
-                          --startas /bin/sh -- -c "exec $DAEMON $DAEMON_ARGS >> "$LOGFILE" 2>&1"
+        start-stop-daemon --start --background --quiet --pidfile $PIDFILE --make-pidfile \
+                          --startas /bin/sh -- -c "exec $DAEMON $DAEMON_ARGS >> $LOGFILE 2>&1"
 }
 
 do_stop()
 {
-        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $NAME
+        start-stop-daemon --stop --quiet --pidfile $PIDFILE
         RETVAL="$?"
-        [ "$RETVAL" = 2 ] && return 2
-
-        start-stop-daemon --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
-        [ "$?" = 2 ] && return 2
-
         rm -f $PIDFILE
         return "$RETVAL"
 }
