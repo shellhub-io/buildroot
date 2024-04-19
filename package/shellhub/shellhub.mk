@@ -3,7 +3,9 @@ SHELLHUB_SITE = https://github.com/shellhub-io/shellhub/releases/download/v$(SHE
 SHELLHUB_SOURCE = shellhub-agent.tar.gz
 SHELLHUB_LICENSE = Apache-2.0
 SHELLHUB_LICENSE_FILES = LICENSE.md
-SHELLHUB_DEPENDENCIES = libxcrypt
+SHELLHUB_DEPENDENCIES = \
+	libxcrypt \
+	ca-certificates
 SHELLHUB_GOMOD = github.com/shellhub-io/shellhub/agent
 SHELLHUB_LDFLAGS = -X main.AgentVersion=v${SHELLHUB_VERSION}
 
