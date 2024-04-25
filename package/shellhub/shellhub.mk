@@ -1,4 +1,4 @@
-SHELLHUB_VERSION = 0.15.0-rc.3
+SHELLHUB_VERSION = 0.15.0
 SHELLHUB_SITE = https://github.com/shellhub-io/shellhub/releases/download/v$(SHELLHUB_VERSION)
 SHELLHUB_SOURCE = shellhub-agent.tar.gz
 SHELLHUB_LICENSE = Apache-2.0
