@@ -1,0 +1,49 @@
+name: Update hash
+
+on:
+  pull_request:
+    paths:
+      - 'package/shellhub/shellhub.mk'
+
+jobs:
+  update-hash:
+    runs-on: ubuntu-latest
+    if: github.actor == 'renovate[bot]'
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update hash
+        run: |
+          # Read version from shellhub.mk
+          VERSION=$(grep "^SHELLHUB_VERSION" package/shellhub/shellhub.mk | cut -d= -f2 | tr -d '[:space:]')
+
+          # Construct download URL
+          URL="https://github.com/shellhub-io/shellhub/releases/download/v${VERSION}/shellhub-agent.tar.gz"
+
+          # Download the file
+          echo "Downloading ${URL}..."
+          curl -L -o /tmp/shellhub-agent.tar.gz "${URL}"
+
+          # Calculate MD5
+          MD5=$(md5sum /tmp/shellhub-agent.tar.gz | awk '{print $1}')
+
+          # Generate hash file
+          echo "md5  ${MD5}  shellhub-agent.tar.gz" > package/shellhub/shellhub.hash
+
+          # Cleanup
+          rm /tmp/shellhub-agent.tar.gz
+
+          echo "hash file updated successfully!"
+
+      - name: Commit hash changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package/shellhub/shellhub.hash
+          git diff --staged --quiet || git commit -m "Update hash for new version"
+          git push
