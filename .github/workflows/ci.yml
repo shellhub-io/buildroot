@@ -95,6 +95,9 @@ jobs:
         run: |
           make BR2_EXTERNAL=$GITHUB_WORKSPACE qemu_x86_64_defconfig
           cat >> .config << 'EOF'
+          BR2_TOOLCHAIN_EXTERNAL=y
+          BR2_TOOLCHAIN_EXTERNAL_BOOTLIN=y
+          BR2_TOOLCHAIN_EXTERNAL_BOOTLIN_X86_64_CORE_I7_GLIBC_STABLE=y
           BR2_PACKAGE_SHELLHUB=y
           BR2_CCACHE=y
           BR2_CCACHE_DIR="/home/runner/.buildroot-ccache"
