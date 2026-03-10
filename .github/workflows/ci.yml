@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'package/shellhub/**'
+      - 'rootfs_overlay/**'
+      - 'Config.in'
+      - 'external.mk'
+      - '.github/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-hash:
+    runs-on: ubuntu-latest
+    if: github.actor == 'renovate[bot]'
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update hash
+        run: |
+          VERSION=$(grep "^SHELLHUB_VERSION" package/shellhub/shellhub.mk | cut -d= -f2 | tr -d '[:space:]')
+          URL="https://github.com/shellhub-io/shellhub/releases/download/v${VERSION}/shellhub-agent.tar.gz"
+
+          echo "Downloading ${URL}..."
+          curl -L -o /tmp/shellhub-agent.tar.gz "${URL}"
+
+          NEW_MD5=$(md5sum /tmp/shellhub-agent.tar.gz | awk '{print $1}')
+          CURRENT_MD5=$(awk '{print $2}' package/shellhub/shellhub.hash 2>/dev/null || echo "")
+          rm /tmp/shellhub-agent.tar.gz
+
+          if [ "$NEW_MD5" = "$CURRENT_MD5" ]; then
+            echo "Hash already up to date, skipping commit."
+            exit 0
+          fi
+
+          echo "md5  ${NEW_MD5}  shellhub-agent.tar.gz" > package/shellhub/shellhub.hash
+          echo "Hash file updated successfully!"
+
+      - name: Commit hash changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package/shellhub/shellhub.hash
+          git diff --staged --quiet || git commit -m "Update hash for new version"
+          git push
+
+  build-and-test:
+    needs: [update-hash]
+    if: always() && (needs.update-hash.result == 'success' || needs.update-hash.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential libncurses-dev bc python3 rsync cpio unzip wget file \
+            qemu-system-x86 python3-pexpect
+
+      - name: Clone Buildroot
+        run: |
+          git clone --depth 1 --branch 2024.11 https://github.com/buildroot/buildroot.git /tmp/buildroot
+
+      - name: Cache Buildroot downloads
+        uses: actions/cache@v4
+        with:
+          path: /tmp/buildroot/dl
+          key: buildroot-dl-${{ hashFiles('package/shellhub/shellhub.mk') }}
+          restore-keys: buildroot-dl-
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildroot-ccache
+          key: buildroot-ccache-${{ github.run_id }}
+          restore-keys: buildroot-ccache-
+
+      - name: Configure Buildroot
+        working-directory: /tmp/buildroot
+        run: |
+          make BR2_EXTERNAL=$GITHUB_WORKSPACE qemu_x86_64_defconfig
+          cat >> .config << 'EOF'
+          BR2_PACKAGE_SHELLHUB=y
+          BR2_CCACHE=y
+          BR2_CCACHE_DIR="/home/runner/.buildroot-ccache"
+          EOF
+          make olddefconfig
+
+      - name: Build
+        working-directory: /tmp/buildroot
+        run: make -j$(nproc)
+
+      - name: Test with QEMU
+        run: python3 .github/scripts/test-qemu.py /tmp/buildroot/output/images
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-test-logs
+          path: /tmp/qemu-test.log
+
+  auto-merge:
+    needs: [build-and-test]
+    runs-on: ubuntu-latest
+    if: github.actor == 'renovate[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto-approve
+        uses: hmarr/auto-approve-action@v4
+
+      - name: Auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge ${{ github.event.pull_request.number }} --squash --auto
