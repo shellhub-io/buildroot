@@ -7,7 +7,7 @@ SHELLHUB_DEPENDENCIES = \
 	libxcrypt \
 	ca-certificates
 SHELLHUB_GOMOD = github.com/shellhub-io/shellhub/agent
-SHELLHUB_LDFLAGS = -X main.AgentVersion=v${SHELLHUB_VERSION}
+SHELLHUB_LDFLAGS = -X main.AgentVersion=v$(SHELLHUB_VERSION)
 
 define SHELLHUB_INSTALL_INIT_SYSTEMD
         $(INSTALL) -D -m 0644 $(SHELLHUB_PKGDIR)/shellhub.service \
