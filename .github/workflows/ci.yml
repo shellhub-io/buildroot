@@ -74,7 +74,7 @@ jobs:
 
       - name: Clone Buildroot
         run: |
-          git clone --depth 1 --branch 2026.02 https://github.com/buildroot/buildroot.git /tmp/buildroot
+          git clone --depth 1 --branch 2026.02.2 https://github.com/buildroot/buildroot.git /tmp/buildroot
 
       - name: Cache Buildroot downloads
         uses: actions/cache@v4
